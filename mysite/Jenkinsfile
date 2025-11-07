@@ -2,45 +2,45 @@ pipeline {
   agent any
 
   environment {
-    REPO_URL = 'https://github.com/gildoong/django_test.git'
-    BRANCH = 'main'
-    DEPLOY_USER = 'vagrant'
-    DEPLOY_HOST = '192.168.56.23'
-    DEPLOY_DIR = '/home/vagrant/django_git/mysite'
-    SSH_CRED_ID = 'vagrant'  // Jenkins Credentials ID
+    REPO_URL = "https://github.com/gildoong/django_test.git"
+    BRANCH = "main"
+    DEPLOY_USER = "vagrant"
+    DEPLOY_HOST = "192.168.56.23"
+    DEPLOY_DIR = "/home/vagrant/django_test/mysite"
+    SSH_CRED_ID = "vagrant"
   }
 
   stages {
-
     stage('Checkout') {
       steps {
-        checkout([$class: 'GitSCM',
-          branches: [[name: "*/${BRANCH}"]],
-          userRemoteConfigs: [[url: "${REPO_URL}"]]
-        ])
+        echo "[CHECKOUT] Fetching code from ${REPO_URL}"
+        git branch: "${BRANCH}", url: "${REPO_URL}"
       }
     }
 
     stage('Run Remote Deploy') {
       steps {
+        echo "[DEPLOY] Running deployment on remote host"
         sshagent (credentials: [env.SSH_CRED_ID]) {
           sh """
-            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} bash -s <<'ENDSSH'
-            set -e
+            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} 'bash -s' << 'ENDSSH'
+              set -e
+              echo "[1] Cleaning old directory..."
+              rm -rf ${DEPLOY_DIR}
+              mkdir -p ${DEPLOY_DIR}
+              cd ${DEPLOY_DIR}
 
-            echo "[1] Clean old deployment directory..."
-            rm -rf ${DEPLOY_DIR}
-            mkdir -p ${DEPLOY_DIR}
-            cd ${DEPLOY_DIR}
+              echo "[2] Downloading latest deploy_remote.sh from GitHub..."
+              curl -s -o /tmp/deploy_remote.sh https://raw.githubusercontent.com/gildoong/django_test/${BRANCH}/mysite/scripts/deploy_remote.sh
 
-            echo "[2] Download latest deploy_remote.sh from GitHub..."
-            curl -s -O https://raw.githubusercontent.com/gildoong/django_test/${BRANCH}/deploy_remote.sh
-            chmod +x deploy_remote.sh
+              if [ ! -s /tmp/deploy_remote.sh ]; then
+                echo "❌ Failed to download deploy_remote.sh (404 or empty file)"
+                exit 1
+              fi
 
-            echo "[3] Run deployment script..."
-            ./deploy_remote.sh
-
-            echo "[4] Deployment script finished!"
+              echo "[3] Running deploy script..."
+              chmod +x /tmp/deploy_remote.sh
+              /tmp/deploy_remote.sh
             ENDSSH
           """
         }
@@ -53,7 +53,7 @@ pipeline {
       echo "✅ Deployment completed successfully!"
     }
     failure {
-      echo "❌ Deployment failed"
+      echo "❌ Deployment failed!"
     }
   }
 }
