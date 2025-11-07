@@ -2,18 +2,22 @@ pipeline {
   agent any
 
   environment {
+    REPO_URL = 'https://github.com/gildoong/django_test.git'
+    BRANCH = 'main'
     DEPLOY_USER = 'vagrant'
     DEPLOY_HOST = '192.168.56.23'
-    DEPLOY_DIR  = '/home/vagrant/django_git/mysite'
-    REPO_URL    = 'https://github.com/gildoong/django_test.git'
-    BRANCH      = 'main'
-    SSH_CRED_ID = 'deploy-ssh-key'   // Jenkins Credentials ID
+    DEPLOY_DIR = '/home/vagrant/django_git/mysite'
+    SSH_CRED_ID = 'vagrant'  // Jenkins Credentials ID
   }
 
   stages {
+
     stage('Checkout') {
       steps {
-        checkout scm
+        checkout([$class: 'GitSCM',
+          branches: [[name: "*/${BRANCH}"]],
+          userRemoteConfigs: [[url: "${REPO_URL}"]]
+        ])
       }
     }
 
@@ -21,19 +25,22 @@ pipeline {
       steps {
         sshagent (credentials: [env.SSH_CRED_ID]) {
           sh """
-            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} 'bash -s' <<'ENDSSH'
-              set -e
-              echo "[1] Clean old deployment directory..."
-              rm -rf ${DEPLOY_DIR}
-              mkdir -p ${DEPLOY_DIR}
-              cd ${DEPLOY_DIR}
+            ssh -o StrictHostKeyChecking=no ${DEPLOY_USER}@${DEPLOY_HOST} bash -s <<'ENDSSH'
+            set -e
 
-              echo "[2] Download latest deploy_remote.sh from GitHub..."
-              curl -s -o /tmp/deploy_remote.sh https://raw.githubusercontent.com/gildoong/django_test/${BRANCH}/mysite/scripts/deploy_remote.sh
-              chmod +x /tmp/deploy_remote.sh
+            echo "[1] Clean old deployment directory..."
+            rm -rf ${DEPLOY_DIR}
+            mkdir -p ${DEPLOY_DIR}
+            cd ${DEPLOY_DIR}
 
-              echo "[3] Run deployment script..."
-              /tmp/deploy_remote.sh
+            echo "[2] Download latest deploy_remote.sh from GitHub..."
+            curl -s -O https://raw.githubusercontent.com/gildoong/django_test/${BRANCH}/deploy_remote.sh
+            chmod +x deploy_remote.sh
+
+            echo "[3] Run deployment script..."
+            ./deploy_remote.sh
+
+            echo "[4] Deployment script finished!"
             ENDSSH
           """
         }
@@ -43,7 +50,7 @@ pipeline {
 
   post {
     success {
-      echo "✅ Deployment succeeded"
+      echo "✅ Deployment completed successfully!"
     }
     failure {
       echo "❌ Deployment failed"
