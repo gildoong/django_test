@@ -5,6 +5,11 @@ PROJECT_DIR=/home/vagrant/django_git/mysite
 REPO_URL=https://github.com/gildoong/django_test.git
 BRANCH=main   # 또는 master
 
+# 0) 기존 프로젝트 폴더 삭제 후 새로 생성
+rm -rf ${PROJECT_DIR}
+mkdir -p ${PROJECT_DIR}
+cd ${PROJECT_DIR}
+
 # 1) 디렉토리 준비
 mkdir -p ${PROJECT_DIR}
 cd ${PROJECT_DIR}
