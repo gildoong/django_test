@@ -27,7 +27,7 @@ python3 -m venv venv || true
 source venv/bin/activate
 
 pip install --upgrade pip
-pip install -r requirements.txt
+pip install -r mysite/requirements.txt
 
 # 4) 환경변수 파일(.env)이 필요하면 복사/설정 (수동으로 .env를 서버에 배치)
 # cp /home/vagrant/.env.production .env || true
