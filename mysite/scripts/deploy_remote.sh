@@ -29,7 +29,7 @@ python3 manage.py collectstatic --noinput
 
 echo "[5] Restart runserver..."
 pkill -f "manage.py runserver" || true
-nohup python3 manage.py runserver 0.0.0.0:8000 > /var/log/pybo_run.log 2>&1 &
+nohup python3 manage.py runserver 0.0.0.0:8000 > ~/pybo_run.log 2>&1 &
 
 echo "✅ DEPLOY_OK $(date)"
 
